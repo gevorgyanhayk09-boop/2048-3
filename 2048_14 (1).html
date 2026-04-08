@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>2048</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+html,body{width:100%;height:100%;background:#0a0e2a;overflow:hidden;position:fixed;}
+#app{width:100%;max-width:420px;margin:0 auto;padding:10px;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;display:flex;flex-direction:column;align-items:center;height:100%;overflow:hidden;}
+#header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;width:100%;flex-shrink:0;}
+.logo-icon{position:relative;width:30px;height:30px;flex-shrink:0;}
+.logo-sq{position:absolute;width:20px;height:20px;border-radius:5px;}
+.logo-sq1{background:#cc00aa;opacity:0.7;top:8px;left:8px;}
+.logo-sq2{background:#ff00cc;top:2px;left:2px;}
+#title{font-size:26px;font-weight:700;color:#ff00cc;margin-left:8px;}
+#logo-title{display:flex;align-items:center;}
+#scores{display:flex;gap:6px;}
+.score-box{background:#12163a;border:1px solid #2a1a4a;border-radius:8px;padding:4px 10px;text-align:center;min-width:56px;}
+.score-label{font-size:9px;text-transform:uppercase;color:#7060a0;}
+.score-val{font-size:15px;font-weight:700;color:#ff44dd;}
+#nav{display:flex;gap:5px;margin-bottom:6px;width:100%;flex-shrink:0;}
+.nav-btn{flex:1;border-radius:8px;padding:8px 0;font-size:12px;cursor:pointer;text-align:center;background:#12163a;border:1px solid #2a1a4a;color:#7060a0;font-family:inherit;touch-action:manipulation;font-weight:600;}
+.nav-btn.active{background:#cc00aa;border-color:#ff00cc;color:#fff;}
+.nav-btn.icon-only{flex:0 0 44px;font-size:18px;padding:8px 0;}
+.panel{width:100%;display:none;flex:1;overflow:hidden;flex-direction:column;}
+.panel.active{display:flex;}
+.panel-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;width:100%;}
+#diff-row{display:flex;gap:5px;margin-bottom:6px;width:100%;flex-shrink:0;}
+.diff-btn{flex:1;border-radius:8px;padding:7px 0;font-size:12px;cursor:pointer;text-align:center;background:#12163a;border:1px solid #2a1a4a;color:#7060a0;font-family:inherit;touch-action:manipulation;}
+.diff-btn.active{background:#880099;border-color:#cc00cc;color:#fff;}
+#diff-desc{font-size:11px;margin-bottom:6px;color:#4a3a7a;width:100%;flex-shrink:0;}
+#grid-wrap{position:relative;border-radius:14px;padding:10px;touch-action:none;background:#0d1133;border:1px solid #2a0a4a;width:90vw;max-width:400px;height:90vw;max-height:400px;flex-shrink:0;margin:0 auto;}
+#grid{display:grid;gap:8px;width:100%;height:100%;}
+.cell-bg{border-radius:6px;background:#151840;}
+#tiles{position:absolute;top:10px;left:10px;right:10px;bottom:10px;}
+.tile{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:700;font-family:inherit;will-change:left,top;transition:left 0.12s ease,top 0.12s ease;transform:translateZ(0);}
+.tile.spawning{animation:spawn 0.15s ease forwards;}
+.tile.merging{animation:mpop 0.18s ease forwards;}
+@keyframes spawn{0%{transform:scale(0)}100%{transform:scale(1)}}
+@keyframes mpop{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+#overlay{display:none;position:absolute;inset:0;border-radius:14px;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(10,14,42,0.93);z-index:10;}
+#overlay-msg{font-size:22px;font-weight:700;color:#ff00cc;}
+#overlay-sub{font-size:13px;color:#7060a0;}
+.pbtn{border-radius:8px;padding:7px 16px;font-size:13px;cursor:pointer;background:#cc00aa;border:none;color:#fff;font-family:inherit;touch-action:manipulation;}
+.card{background:#0d1133;border:1px solid #2a0a4a;border-radius:14px;padding:14px;width:100%;margin-bottom:8px;}
+.card-title{font-size:12px;color:#7060a0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.srow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.srow:last-child{margin-bottom:0;}
+.slabel{font-size:14px;color:#cc88ff;}
+.toggle{position:relative;width:48px;height:26px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.tslider{position:absolute;inset:0;background:#1a0a3a;border-radius:13px;cursor:pointer;border:1px solid #3a1a5a;transition:background .2s;}
+.tslider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#7060a0;border-radius:50%;transition:transform .2s,background .2s;}
+.toggle input:checked+.tslider{background:#4a006a;border-color:#cc00aa;}
+.toggle input:checked+.tslider:before{transform:translateX(22px);background:#ff00cc;}
+.lprow{display:flex;gap:6px;width:100%;}
+.lpbtn{flex:1;border-radius:8px;padding:8px 0;font-size:13px;cursor:pointer;text-align:center;background:#12163a;border:1px solid #2a1a4a;color:#7060a0;font-family:inherit;touch-action:manipulation;}
+.lpbtn.active{background:#3a0a5a;border-color:#ff00cc;color:#ff88ff;}
+.tut-step{background:#0d1133;border:1px solid #2a0a4a;border-radius:14px;padding:16px;width:100%;margin-bottom:10px;}
+.tut-num{width:32px;height:32px;border-radius:50%;background:#cc00aa;color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;}
+.tut-step-title{font-size:16px;font-weight:700;color:#ff00cc;text-align:center;margin-bottom:8px;}
+.tut-step-desc{font-size:13px;color:#9080c0;text-align:center;line-height:1.7;margin-bottom:12px;}
+.tut-visual{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;}
+.mini-board{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#0a0c22;border-radius:8px;padding:6px;width:130px;}
+.mc{background:#151840;border-radius:4px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.arrow-big{font-size:28px;color:#ff00cc;}
+.tut-tip{background:#1a0a3a;border-radius:8px;padding:8px 12px;font-size:12px;color:#7060a0;text-align:center;line-height:1.6;}
+.tut-tip b{color:#ff88ff;}
+.tut-play-btn{width:100%;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;background:#cc00aa;border:none;color:#fff;font-family:inherit;touch-action:manipulation;margin-top:4px;}
+.swipe-demo{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.swipe-arrows{display:flex;gap:8px;align-items:center;}
+.swipe-arr{width:36px;height:36px;border-radius:8px;background:#1a0a3a;border:1px solid #3a1a5a;display:flex;align-items:center;justify-content:center;font-size:18px;color:#cc88ff;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="logo-title">
+      <div class="logo-icon"><div class="logo-sq logo-sq1"></div><div class="logo-sq logo-sq2"></div></div>
+      <div id="title">2048</div>
+    </div>
+    <div id="scores">
+      <div class="score-box"><div class="score-label" id="lbl-score">Score</div><div class="score-val" id="score">0</div></div>
+      <div class="score-box"><div class="score-label" id="lbl-best">Best</div><div class="score-val" id="best">0</div></div>
+    </div>
+  </div>
+  <div id="nav">
+    <button class="nav-btn active" data-tab="game" id="nb-game">&#127918; Game</button>
+    <button class="nav-btn" data-tab="tutorial" id="nb-tutorial">&#127891; Tutorial</button>
+    <button class="nav-btn icon-only" data-tab="settings" id="nb-settings">&#9881;</button>
+  </div>
+  <div class="panel active" id="tab-game">
+    <div id="diff-row">
+      <button class="diff-btn active" data-diff="easy">&#128522; Easy</button>
+      
+      <button class="diff-btn" data-diff="hard">&#128128; Hard</button>
+    </div>
+    <div id="diff-desc">4x4 &middot; goal: 2048</div>
+    <div id="grid-wrap">
+      <div id="grid"></div>
+      <div id="tiles"></div>
+      <div id="overlay">
+        <div id="overlay-msg"></div>
+        <div id="overlay-sub"></div>
+        <button class="pbtn" id="overlay-btn">Play Again</button>
+      </div>
+    </div>
+  </div>
+  <div class="panel" id="tab-tutorial">
+    <div class="panel-scroll">
+      <div class="tut-step">
+        <div class="tut-num">1</div>
+        <div class="tut-step-title" id="tut1-title">What is this game?</div>
+        <div class="tut-step-desc" id="tut1-desc">You have a board with numbered tiles. Your goal is to combine them and get the tile with number 2048!</div>
+        <div class="tut-visual">
+          <div class="mini-board">
+            <div class="mc" style="background:#1a0d3a;color:#cc88ff">2</div><div class="mc"></div><div class="mc" style="background:#220d44;color:#dd99ff">4</div><div class="mc"></div>
+            <div class="mc"></div><div class="mc" style="background:#4a006a;color:#ffaaff">8</div><div class="mc"></div><div class="mc" style="background:#1a0d3a;color:#cc88ff">2</div>
+            <div class="mc" style="background:#660080;color:#ffccff">16</div><div class="mc"></div><div class="mc"></div><div class="mc" style="background:#220d44;color:#dd99ff">4</div>
+            <div class="mc"></div><div class="mc" style="background:#880099;color:#fff">32</div><div class="mc"></div><div class="mc"></div>
+          </div>
+        </div>
+        <div class="tut-tip">&#127919; <b id="tut1-tip-b">Goal:</b> <span id="tut1-tip-s">Reach the 2048 tile!</span></div>
+      </div>
+      <div class="tut-step">
+        <div class="tut-num">2</div>
+        <div class="tut-step-title" id="tut2-title">How to move tiles?</div>
+        <div class="tut-step-desc" id="tut2-desc">Swipe your finger on the screen in any direction. All tiles will slide that way!</div>
+        <div class="tut-visual">
+          <div class="swipe-demo">
+            <div class="swipe-arr">&#8593;</div>
+            <div class="swipe-arrows">
+              <div class="swipe-arr">&#8592;</div>
+              <div style="width:36px;height:36px;border-radius:50%;background:#cc00aa;display:flex;align-items:center;justify-content:center;font-size:20px;">&#128072;</div>
+              <div class="swipe-arr">&#8594;</div>
+            </div>
+            <div class="swipe-arr">&#8595;</div>
+          </div>
+        </div>
+        <div class="tut-tip">&#128072; <b id="tut2-tip-b1">On phone:</b> <span id="tut2-tip-s1">Swipe with finger</span> &nbsp;&#9000; <b id="tut2-tip-b2">Computer:</b> <span id="tut2-tip-s2">Arrow keys</span></div>
+      </div>
+      <div class="tut-step">
+        <div class="tut-num">3</div>
+        <div class="tut-step-title" id="tut3-title">How to combine tiles?</div>
+        <div class="tut-step-desc" id="tut3-desc">When two tiles with the SAME number touch — they merge into one bigger tile!</div>
+        <div class="tut-visual">
+          <div class="mini-board" style="width:110px;">
+            <div class="mc"></div><div class="mc"></div><div class="mc" style="background:#1a0d3a;color:#cc88ff">2</div><div class="mc" style="background:#1a0d3a;color:#cc88ff">2</div>
+            <div class="mc"></div><div class="mc"></div><div class="mc" style="background:#220d44;color:#dd99ff">4</div><div class="mc" style="background:#220d44;color:#dd99ff">4</div>
+            <div class="mc"></div><div class="mc"></div><div class="mc"></div><div class="mc"></div>
+            <div class="mc"></div><div class="mc"></div><div class="mc"></div><div class="mc"></div>
+          </div>
+          <div class="arrow-big">&#8594;</div>
+          <div class="mini-board" style="width:110px;">
+            <div class="mc"></div><div class="mc"></div><div class="mc"></div><div class="mc" style="background:#220d44;color:#dd99ff">4</div>
+            <div class="mc"></div><div class="mc"></div><div class="mc"></div><div class="mc" style="background:#4a006a;color:#ffaaff">8</div>
+            <div class="mc"></div><div class="mc"></div><div class="mc"></div><div class="mc"></div>
+            <div class="mc"></div><div class="mc"></div><div class="mc"></div><div class="mc"></div>
+          </div>
+        </div>
+        <div class="tut-tip">&#10024; <span id="tut3-tip-s">2+2=4 &nbsp; 4+4=8 &nbsp; 8+8=16... until 2048!</span></div>
+      </div>
+      <div class="tut-step">
+        <div class="tut-num">4</div>
+        <div class="tut-step-title" id="tut4-title">Win or Lose?</div>
+        <div class="tut-step-desc" id="tut4-desc">You WIN when you reach 2048. You LOSE when the board is full and you cannot move.</div>
+        <div class="tut-visual" style="gap:20px;">
+          <div style="text-align:center;">
+            <div style="font-size:32px;">&#127881;</div>
+            <div style="font-size:13px;color:#69ff7d;font-weight:700;margin-top:4px;" id="tut4-win">WIN!</div>
+            <div style="font-size:11px;color:#7060a0;margin-top:2px;" id="tut4-win2">Reach 2048</div>
+          </div>
+          <div style="font-size:24px;color:#2a1a4a;">|</div>
+          <div style="text-align:center;">
+            <div style="font-size:32px;">&#128557;</div>
+            <div style="font-size:13px;color:#ff5252;font-weight:700;margin-top:4px;" id="tut4-lose">LOSE</div>
+            <div style="font-size:11px;color:#7060a0;margin-top:2px;" id="tut4-lose2">Board full</div>
+          </div>
+        </div>
+        <div class="tut-tip">&#128161; <b id="tut4-tip-b">Tip:</b> <span id="tut4-tip-s">Keep your biggest tile in a corner!</span></div>
+      </div>
+      <button class="tut-play-btn" id="tut-play-btn">&#127918; Start Playing!</button>
+      <div style="height:16px;"></div>
+    </div>
+  </div>
+  <div class="panel" id="tab-settings">
+    <div class="panel-scroll">
+      <div class="card">
+        <div class="card-title" id="set-lang-title">Language</div>
+        <div class="lprow">
+          <button class="lpbtn active" data-lang="en">&#127468;&#127463; EN</button>
+          <button class="lpbtn" data-lang="ru">&#127479;&#127482; RU</button>
+          <button class="lpbtn" data-lang="hy">&#127462;&#127474; HY</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="set-audio-title">Audio</div>
+        <div class="srow">
+          <span class="slabel" id="set-sound-lbl">&#128266; Sound effects</span>
+          <label class="toggle"><input type="checkbox" id="tog-sound" checked><span class="tslider"></span></label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="set-game-title">Game</div>
+        <div class="srow">
+          <span class="slabel" id="set-new-lbl">&#128260; New game</span>
+          <button class="pbtn" id="set-new-btn">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+var LANGS={
+  en:{
+    navGame:'\uD83C\uDFAE Game',navTutorial:'\uD83C\uDF93 Tutorial',
+    score:'Score',best:'Best',easy:'Easy',hard:'Hard',
+    dE:'4x4 \u00b7 goal: 2048',dH:'5x5 \u00b7 goal: 4096',
+    win:'Victory! \uD83C\uDF89',winS:'You reached ',lose:'Game Over',loseS:'No more moves',again:'Play Again',
+    setLang:'Language',setAudio:'Audio',setGame:'Game',setSound:'\uD83D\uDD0A Sound effects',setNew:'\uD83D\uDD04 New game',start:'Start',
+    tut1t:'What is this game?',tut1d:'You have a board with numbered tiles. Your goal is to combine them and get the tile with number 2048!',
+    tut1tipB:'Goal:',tut1tipS:'Reach the 2048 tile!',
+    tut2t:'How to move tiles?',tut2d:'Swipe your finger on the screen in any direction. All tiles will slide that way!',
+    tut2b1:'On phone:',tut2s1:'Swipe with finger',tut2b2:'Computer:',tut2s2:'Arrow keys',
+    tut3t:'How to combine tiles?',tut3d:'When two tiles with the SAME number touch \u2014 they merge into one bigger tile!',
+    tut3s:'2+2=4 \u00a0 4+4=8 \u00a0 8+8=16... until 2048!',
+    tut4t:'Win or Lose?',tut4d:'You WIN when you reach 2048. You LOSE when the board is full and you cannot move.',
+    tut4win:'WIN!',tut4win2:'Reach 2048',tut4lose:'LOSE',tut4lose2:'Board full',
+    tut4tipB:'Tip:',tut4tipS:'Keep your biggest tile in a corner!',
+    tutPlay:'\uD83C\uDFAE Start Playing!'
+  },
+  ru:{
+    navGame:'\uD83C\uDFAE \u0418\u0433\u0440\u0430',navTutorial:'\uD83C\uDF93 \u041e\u0431\u0443\u0447\u0435\u043d\u0438\u0435',
+    score:'\u0421\u0447\u0451\u0442',best:'\u0420\u0435\u043a\u043e\u0440\u0434',easy:'\u041b\u0451\u0433\u043a\u0438\u0439',hard:'\u0421\u043b\u043e\u0436\u043d\u044b\u0439',
+    dE:'4x4 \u00b7 \u0446\u0435\u043b\u044c: 2048',dH:'5x5 \u00b7 \u0446\u0435\u043b\u044c: 4096',
+    win:'\u041f\u043e\u0431\u0435\u0434\u0430! \uD83C\uDF89',winS:'\u0422\u044b \u0434\u043e\u0441\u0442\u0438\u0433 ',lose:'\u0418\u0433\u0440\u0430 \u043e\u043a\u043e\u043d\u0447\u0435\u043d\u0430',loseS:'\u041d\u0435\u0442 \u0445\u043e\u0434\u043e\u0432',again:'\u0417\u0430\u043d\u043e\u0432\u043e',
+    setLang:'\u042f\u0437\u044b\u043a',setAudio:'\u0417\u0432\u0443\u043a',setGame:'\u0418\u0433\u0440\u0430',setSound:'\uD83D\uDD0A \u0417\u0432\u0443\u043a\u043e\u0432\u044b\u0435 \u044d\u0444\u0444\u0435\u043a\u0442\u044b',setNew:'\uD83D\uDD04 \u041d\u043e\u0432\u0430\u044f \u0438\u0433\u0440\u0430',start:'\u041d\u0430\u0447\u0430\u0442\u044c',
+    tut1t:'\u0427\u0442\u043e \u044d\u0442\u043e \u0437\u0430 \u0438\u0433\u0440\u0430?',tut1d:'\u0423 \u0442\u0435\u0431\u044f \u0435\u0441\u0442\u044c \u0434\u043e\u0441\u043a\u0430 \u0441 \u043f\u043b\u0438\u0442\u043a\u0430\u043c\u0438-\u0447\u0438\u0441\u043b\u0430\u043c\u0438. \u0426\u0435\u043b\u044c \u2014 \u0441\u043e\u0435\u0434\u0438\u043d\u044f\u0442\u044c \u0438\u0445 \u0438 \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043f\u043b\u0438\u0442\u043a\u0443 2048!',
+    tut1tipB:'\u0426\u0435\u043b\u044c:',tut1tipS:'\u0414\u043e\u0431\u0440\u0430\u0442\u044c\u0441\u044f \u0434\u043e \u043f\u043b\u0438\u0442\u043a\u0438 2048!',
+    tut2t:'\u041a\u0430\u043a \u0434\u0432\u0438\u0433\u0430\u0442\u044c \u043f\u043b\u0438\u0442\u043a\u0438?',tut2d:'\u041f\u0440\u043e\u0432\u0435\u0434\u0438 \u043f\u0430\u043b\u044c\u0446\u0435\u043c \u043f\u043e \u044d\u043a\u0440\u0430\u043d\u0443 \u0432 \u043b\u044e\u0431\u0443\u044e \u0441\u0442\u043e\u0440\u043e\u043d\u0443. \u0412\u0441\u0435 \u043f\u043b\u0438\u0442\u043a\u0438 \u0441\u0434\u0432\u0438\u043d\u0443\u0442\u0441\u044f \u0442\u0443\u0434\u0430!',
+    tut2b1:'\u0422\u0435\u043b\u0435\u0444\u043e\u043d:',tut2s1:'\u041f\u0440\u043e\u0432\u0435\u0434\u0438 \u043f\u0430\u043b\u044c\u0446\u0435\u043c',tut2b2:'\u041a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440:',tut2s2:'\u0421\u0442\u0440\u0435\u043b\u043a\u0438',
+    tut3t:'\u041a\u0430\u043a \u0441\u043e\u0435\u0434\u0438\u043d\u044f\u0442\u044c \u043f\u043b\u0438\u0442\u043a\u0438?',tut3d:'\u041a\u043e\u0433\u0434\u0430 \u0434\u0432\u0435 \u043f\u043b\u0438\u0442\u043a\u0438 \u0441 \u041e\u0414\u0418\u041d\u0410\u041a\u041e\u0412\u042b\u041c \u0447\u0438\u0441\u043b\u043e\u043c \u0441\u0442\u0430\u043b\u043a\u0438\u0432\u0430\u044e\u0442\u0441\u044f \u2014 \u043e\u043d\u0438 \u0441\u043b\u0438\u0432\u0430\u044e\u0442\u0441\u044f \u0432 \u043e\u0434\u043d\u0443!',
+    tut3s:'2+2=4 \u00a0 4+4=8 \u00a0 8+8=16... \u0434\u043e 2048!',
+    tut4t:'\u041f\u043e\u0431\u0435\u0434\u0430 \u0438\u043b\u0438 \u043f\u043e\u0440\u0430\u0436\u0435\u043d\u0438\u0435?',tut4d:'\u041f\u041e\u0411\u0415\u0414\u0410 \u2014 \u0434\u043e\u0431\u0440\u0430\u0442\u044c\u0441\u044f \u0434\u043e 2048. \u041f\u041e\u0420\u0410\u0416\u0415\u041d\u0418\u0415 \u2014 \u0434\u043e\u0441\u043a\u0430 \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d\u0430 \u0438 \u043d\u0435\u0442 \u0445\u043e\u0434\u043e\u0432.',
+    tut4win:'\u041f\u041e\u0411\u0415\u0414\u0410!',tut4win2:'\u0414\u043e\u0431\u0435\u0440\u0438\u0441\u044c \u0434\u043e 2048',tut4lose:'\u041f\u041e\u0420\u0410\u0416\u0415\u041d\u0418\u0415',tut4lose2:'\u0414\u043e\u0441\u043a\u0430 \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d\u0430',
+    tut4tipB:'\u0421\u043e\u0432\u0435\u0442:',tut4tipS:'\u0414\u0435\u0440\u0436\u0438 \u0431\u043e\u043b\u044c\u0448\u0443\u044e \u043f\u043b\u0438\u0442\u043a\u0443 \u0432 \u0443\u0433\u043b\u0443!',
+    tutPlay:'\uD83C\uDFAE \u0418\u0433\u0440\u0430\u0442\u044c!'
+  },
+  hy:{
+    navGame:'\uD83C\uDFAE \u053d\u0561\u0572',navTutorial:'\uD83C\uDF93 \u0548\u0582\u0572\u0565\u0581\u0578\u0582\u0575\u0581',
+    score:'\u0540\u0561\u0577\u056b\u057e',best:'\u053c\u0561\u057e\u0561\u0563\u0578\u0582\u0575\u0576',easy:'\u0540\u0565\u0577\u057f',hard:'\u0532\u0561\u0580\u0564',
+    dE:'4x4 \u00b7 \u0576\u057a\u0561\u057f\u0561\u056f: 2048',dH:'5x5 \u00b7 \u0576\u057a\u0561\u057f\u0561\u056f: 4096',
+    win:'\u0540\u0561\u0572\u0569\u0565\u0581\u056b\u0580! \uD83C\uDF89',winS:'\u0540\u0561\u057d\u0561\u0580 ',lose:'\u053d\u0561\u0572\u0576 \u0561\u057e\u0561\u0580\u057f\u057e\u0565\u0581',loseS:'\u0554\u0561\u0575\u056c \u0579\u056f\u0561',again:'\u0546\u0578\u0580\u056b\u0581 \u056d\u0561\u0572\u0561\u056c',
+    setLang:'\u053c\u0565\u0566\u0578\u0582',setAudio:'\u0541\u0561\u0575\u0576',setGame:'\u053d\u0561\u0572',setSound:'\uD83D\uDD0A \u0541\u0561\u0575\u0576\u0561\u0575\u056b\u0576 \u0567\u0586\u0565\u056f\u057f\u0576\u0565\u0580',setNew:'\uD83D\uDD04 \u0546\u0578\u0580 \u056d\u0561\u0572',start:'\u054d\u056f\u057d\u0565\u056c',
+    tut1t:'\u053b\u0576\u0579 \u0567 \u0561\u0575\u057d \u056d\u0561\u0572\u0568',tut1d:'\u0548\u0578\u0582\u0576\u0565\u057d 4x4 \u057f\u0561\u056d\u057f\u0561\u056f \u0569\u057e\u0578\u057e \u057d\u0561\u056c\u056b\u056f\u0576\u0565\u0580\u0578\u057e. \u0546\u057a\u0561\u057f\u0561\u056f\u0576 \u0567 \u0570\u0561\u057d\u0576\u0565\u056c 2048 \u0569\u057e\u056b\u0576.',
+    tut1tipB:'\u0546\u057a\u0561\u057f\u0561\u056f.',tut1tipS:'\u0540\u0561\u057d\u056b\u0580 2048 \u057d\u0561\u056c\u056f\u056b\u0576!',
+    tut2t:'\u053b\u0576\u0579\u057a\u0565\u057d \u0577\u0561\u0580\u056a\u0565\u056c \u057d\u0561\u056c\u056f\u0576\u0565\u0580\u0568',tut2d:'\u054d\u0561\u0570\u0565\u0581\u0580\u0578\u0582 \u0574\u0561\u057f\u0564 \u0571\u0561\u056d, \u0561\u057b, \u057e\u0565\u0580 \u056f\u0561\u0574 \u057e\u0561\u0580. \u0532\u0578\u056c\u0578\u0580 \u057d\u0561\u056c\u056f\u0576\u0565\u0580\u0568 \u056f\u057d\u0561\u0570\u0565\u0576 \u0561\u0575\u0564 \u0578\u0582\u0572\u0572\u0578\u0582\u0569\u0575\u0561\u0574\u0562.',
+    tut2b1:'\u0540\u0565\u057c\u0561\u056d\u0578\u057d.',tut2s1:'\u054d\u0561\u0570\u0565\u0581\u0576\u0565\u056c \u0574\u0561\u057f\u0578\u057e',tut2b2:'\u0540\u0561\u0574\u0561\u056f\u0561\u0580\u0563\u056b\u0579.',tut2s2:'\u054d\u056c\u0561\u0584\u056b \u057d\u057f\u0565\u0572\u0576\u0565\u0580',
+    tut3t:'\u053b\u0576\u0579\u057a\u0565\u057d \u0574\u056b\u0561\u0581\u0576\u0565\u056c \u057d\u0561\u056c\u056f\u0576\u0565\u0580\u0568',tut3d:'\u0535\u0580\u0562 \u0576\u0578\u0582\u0575\u0576 \u0569\u057e\u0578\u057e \u0565\u0580\u056f\u0578\u0582 \u057d\u0561\u056c\u056f \u0562\u0561\u056d\u057e\u0578\u0582\u0574 \u0565\u0576 \u2014 \u0564\u0580\u0561\u0576\u0584 \u0574\u056b\u0561\u0571\u0578\u0582\u056c\u057e\u0578\u0582\u0574 \u0565\u0576 \u0574\u0565\u056f \u0574\u0565\u056e\u056b!',
+    tut3s:'2+2=4 \u00a0 4+4=8 \u00a0 8+8=16... \u0574\u056b\u0576\u0579\u0587 2048!',
+    tut4t:'\u0540\u0561\u0572\u0569\u0565\u056c, \u0569\u0565 \u057a\u0561\u0580\u057f\u057e\u0565\u056c',tut4d:'\u0540\u0531\u0542\u0539\u0531\u0546\u0531\u053f \u2014 \u0570\u0561\u057d\u056b\u0580 2048-\u056b\u0576. \u054a\u0531\u0550\u054f\u0548\u0552\u0539\u0545\u0548\u0552\u0546 \u2014 \u057f\u0561\u056d\u057f\u0561\u056f\u0568 \u056c\u056b \u0567, \u0584\u0561\u0575\u056c \u0579\u056f\u0561.',
+    tut4win:'\u0540\u0531\u0542\u0539\u0531\u0546\u0531\u053f',tut4win2:'\u0540\u0561\u057d\u056b\u0580 2048-\u056b\u0576',tut4lose:'\u054a\u0531\u0550\u054f\u0548\u0552\u0539\u0545\u0548\u0552\u0546',tut4lose2:'\u054f\u0561\u056d\u057f\u0561\u056f\u0568 \u056c\u056b \u0567',
+    tut4tipB:'\u053d\u0578\u0580\u0570\u0578\u0582\u0580\u0564.',tut4tipS:'\u0531\u0574\u0565\u0576\u0561\u0574\u0565\u056e \u057d\u0561\u056c\u056f\u0568 \u057a\u0561\u0570\u056b\u0580 \u0561\u0576\u056f\u0575\u0578\u0582\u0576\u0578\u0582\u0574.',
+    tutPlay:'\uD83C\uDFAE \u054d\u056f\u057d\u0565\u056c \u056d\u0561\u0572\u0568!'
+  }
+};
+var TC={2:{bg:'#1a0d3a',fg:'#cc88ff'},4:{bg:'#220d44',fg:'#dd99ff'},8:{bg:'#4a006a',fg:'#ffaaff'},16:{bg:'#660080',fg:'#ffccff'},32:{bg:'#880099',fg:'#fff'},64:{bg:'#aa00bb',fg:'#fff'},128:{bg:'#cc00aa',fg:'#fff'},256:{bg:'#dd0099',fg:'#fff'},512:{bg:'#ee0088',fg:'#fff'},1024:{bg:'#ff00cc',fg:'#fff'},2048:{bg:'#ff44dd',fg:'#0a0e2a'}};
+var lang='en',soundOn=true;
+function L(){return LANGS[lang];}
+
+function goTab(tab){document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});document.querySelector('[data-tab="'+tab+'"]').classList.add('active');document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});document.getElementById('tab-'+tab).classList.add('active');}
+document.querySelectorAll('.nav-btn').forEach(function(btn){btn.onclick=function(){goTab(btn.dataset.tab);};});
+function applyLang(){
+  var l=L();
+  document.getElementById('nb-game').innerHTML=l.navGame;
+  document.getElementById('nb-tutorial').innerHTML=l.navTutorial;
+  document.getElementById('lbl-score').textContent=l.score;
+  document.getElementById('lbl-best').textContent=l.best;
+  document.getElementById('overlay-btn').textContent=l.again;
+  document.getElementById('set-lang-title').textContent=l.setLang;
+  document.getElementById('set-audio-title').textContent=l.setAudio;
+  document.getElementById('set-game-title').textContent=l.setGame;
+  document.getElementById('set-sound-lbl').textContent=l.setSound;
+  document.getElementById('set-new-lbl').textContent=l.setNew;
+  document.getElementById('set-new-btn').textContent=l.start;
+  document.querySelectorAll('.diff-btn').forEach(function(b,i){var ic=['\uD83D\uDE0A ','\uD83D\uDC80 '],k=['easy','hard'];b.textContent=ic[i]+l[k[i]];});
+  document.getElementById('tut1-title').textContent=l.tut1t;
+  document.getElementById('tut1-desc').textContent=l.tut1d;
+  document.getElementById('tut1-tip-b').textContent=l.tut1tipB;
+  document.getElementById('tut1-tip-s').textContent=l.tut1tipS;
+  document.getElementById('tut2-title').textContent=l.tut2t;
+  document.getElementById('tut2-desc').textContent=l.tut2d;
+  document.getElementById('tut2-tip-b1').textContent=l.tut2b1;
+  document.getElementById('tut2-tip-s1').textContent=l.tut2s1;
+  document.getElementById('tut2-tip-b2').textContent=l.tut2b2;
+  document.getElementById('tut2-tip-s2').textContent=l.tut2s2;
+  document.getElementById('tut3-title').textContent=l.tut3t;
+  document.getElementById('tut3-desc').textContent=l.tut3d;
+  document.getElementById('tut3-tip-s').textContent=l.tut3s;
+  document.getElementById('tut4-title').textContent=l.tut4t;
+  document.getElementById('tut4-desc').textContent=l.tut4d;
+  document.getElementById('tut4-win').textContent=l.tut4win;
+  document.getElementById('tut4-win2').textContent=l.tut4win2;
+  document.getElementById('tut4-lose').textContent=l.tut4lose;
+  document.getElementById('tut4-lose2').textContent=l.tut4lose2;
+  document.getElementById('tut4-tip-b').textContent=l.tut4tipB;
+  document.getElementById('tut4-tip-s').textContent=l.tut4tipS;
+  document.getElementById('tut-play-btn').textContent=l.tutPlay;
+  updateDesc();
+}
+document.querySelectorAll('.lpbtn').forEach(function(btn){btn.onclick=function(){lang=btn.dataset.lang;document.querySelectorAll('.lpbtn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');applyLang();};});
+document.getElementById('tog-sound').onchange=function(){soundOn=this.checked;};
+document.getElementById('set-new-btn').onclick=function(){goTab('game');init();};
+document.getElementById('tut-play-btn').onclick=function(){goTab('game');};
+var DIFF={easy:{size:4,spawnVals:[2,2,2,4],goal:2048},hard:{size:5,spawnVals:[2,4,4,8,8,16],goal:4096}};
+var diff='easy',board,score,best={easy:0,hard:0},moving=false,audioCtx=null;
+var gridEl=document.getElementById('grid'),tilesEl=document.getElementById('tiles'),scoreEl=document.getElementById('score'),bestEl=document.getElementById('best'),overlay=document.getElementById('overlay'),overlayMsg=document.getElementById('overlay-msg'),overlaySub=document.getElementById('overlay-sub'),gridWrap=document.getElementById('grid-wrap');
+function updateDesc(){var l=L(),m={easy:l.dE,hard:l.dH};document.getElementById('diff-desc').textContent=m[diff];}
+document.querySelectorAll('.diff-btn').forEach(function(btn){btn.onclick=function(){diff=btn.dataset.diff;document.querySelectorAll('.diff-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');updateDesc();bestEl.textContent=best[diff];init();};});
+function getCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function playSlide(){if(!soundOn)return;try{var c=getCtx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.setValueAtTime(220,c.currentTime);o.frequency.linearRampToValueAtTime(180,c.currentTime+0.08);g.gain.setValueAtTime(0.08,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.1);o.start();o.stop(c.currentTime+0.1);}catch(e){}}
+function playMerge(val){if(!soundOn)return;try{var c=getCtx(),f=Math.min(261.63*Math.pow(2,Math.log2(val)*2/12),2000),o=c.createOscillator(),o2=c.createOscillator(),g=c.createGain();o.connect(g);o2.connect(g);g.connect(c.destination);o.type='triangle';o2.type='sine';o.frequency.value=f;o2.frequency.value=f*1.5;g.gain.setValueAtTime(0.15,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.25);o.start();o2.start();o.stop(c.currentTime+0.25);o2.stop(c.currentTime+0.25);}catch(e){}}
+function playSpawn(){if(!soundOn)return;try{var c=getCtx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.setValueAtTime(400,c.currentTime);o.frequency.exponentialRampToValueAtTime(600,c.currentTime+0.06);g.gain.setValueAtTime(0.06,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.08);o.start();o.stop(c.currentTime+0.08);}catch(e){}}
+function playWin(){if(!soundOn)return;try{var c=getCtx();[523,659,784,1047].forEach(function(f,i){var o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='triangle';o.frequency.value=f;var t=c.currentTime+i*0.12;g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.3);o.start(t);o.stop(t+0.3);});}catch(e){}}
+function playLose(){if(!soundOn)return;try{var c=getCtx();[400,320,260].forEach(function(f,i){var o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sawtooth';o.frequency.value=f;var t=c.currentTime+i*0.15;g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25);});}catch(e){}}
+function sz(){return DIFF[diff].size;}
+function cellSize(){var n=sz(),w=tilesEl.clientWidth,h=tilesEl.clientHeight;return Math.floor((Math.min(w,h)-(n-1)*8)/n);}
+function tilePos(r,c){var n=sz(),s=cellSize(),tot=n*s+(n-1)*8,ox=Math.max(0,Math.floor((tilesEl.clientWidth-tot)/2)),oy=Math.max(0,Math.floor((tilesEl.clientHeight-tot)/2));return{left:ox+c*(s+8),top:oy+r*(s+8),size:s};}
+function tileFs(val,size){if(val>=1000)return Math.max(10,Math.floor(size*0.3));if(val>=100)return Math.floor(size*0.38);return Math.floor(size*0.46);}
+var pool=[];
+function getEl(){return pool.pop()||document.createElement('div');}
+function recycle(el){el.className='tile';el.style.cssText='';el.textContent='';pool.push(el);}
+function init(){var n=sz();board=[];for(var i=0;i<n;i++){var row=[];for(var j=0;j<n;j++)row.push(0);board.push(row);}score=0;Array.from(tilesEl.children).forEach(function(el){recycle(el);});tilesEl.innerHTML='';overlay.style.display='none';scoreEl.textContent=0;bestEl.textContent=best[diff];gridEl.style.gridTemplateColumns='repeat('+n+',1fr)';gridEl.style.gridTemplateRows='repeat('+n+',1fr)';gridEl.innerHTML='';for(var k=0;k<n*n;k++){var d=document.createElement('div');d.className='cell-bg';gridEl.appendChild(d);}addTile();addTile();}
+function spawnVal(){var v=DIFF[diff].spawnVals;return v[Math.floor(Math.random()*v.length)];}
+function addTile(){var n=sz(),e=[];for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(!board[r][c])e.push([r,c]);if(!e.length)return false;var rc=e[Math.floor(Math.random()*e.length)];board[rc[0]][rc[1]]=spawnVal();mkTile(rc[0],rc[1],board[rc[0]][rc[1]],true,false);return true;}
+function mkTile(r,c,val,anim,mrg){var p=tilePos(r,c),col=TC[val]||{bg:'#1a0a3a',fg:'#ff00cc'},el=getEl();el.className='tile'+(anim?' spawning':mrg?' merging':'');el.dataset.val=val;el.dataset.r=r;el.dataset.c=c;el.style.width=p.size+'px';el.style.height=p.size+'px';el.style.left=p.left+'px';el.style.top=p.top+'px';el.style.background=col.bg;el.style.color=col.fg;el.style.fontSize=tileFs(val,p.size)+'px';el.textContent=val;tilesEl.appendChild(el);return el;}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+async function move(dir){if(moving)return;moving=true;var n=sz(),moved=false,mC=0,mM=0,pm=[],ma=[];for(var i=0;i<n;i++){pm.push([]);ma.push([]);for(var j=0;j<n;j++){pm[i].push(null);ma[i].push(false);}}function gl(i){if(dir==='left'||dir==='right')return board[i].slice();var a=[];for(var j=0;j<n;j++)a.push(board[j][i]);return a;}function sl(i,l){if(dir==='left'||dir==='right')board[i]=l;else for(var j=0;j<n;j++)board[j][i]=l[j];}function ml(line,rev,idx){var ind=[];for(var x=0;x<n;x++)ind.push(x);if(rev)ind.reverse();var arr=ind.filter(function(x){return line[x]!==0;}),out=[],oi=rev?n-1:0,step=rev?-1:1,ai=0;for(var x=0;x<n;x++)out.push(0);while(ai<arr.length){var si=arr[ai];if(ai+1<arr.length&&line[si]===line[arr[ai+1]]){var m=line[si]*2;out[oi]=m;score+=m;mC++;if(m>mM)mM=m;if(dir==='left'||dir==='right'){pm[idx][si]=[idx,oi];pm[idx][arr[ai+1]]=[idx,oi];ma[idx][oi]=true;}else{pm[si][idx]=[oi,idx];pm[arr[ai+1]][idx]=[oi,idx];ma[oi][idx]=true;}ai+=2;}else{out[oi]=line[si];if(dir==='left'||dir==='right')pm[idx][si]=[idx,oi];else pm[si][idx]=[oi,idx];ai++;}oi+=step;}return out;}var rev=dir==='right'||dir==='down';for(var i=0;i<n;i++){var o=gl(i),m=ml(o,rev,i);sl(i,m);if(o.join()!==m.join())moved=true;}if(moved){scoreEl.textContent=score;if(score>best[diff]){best[diff]=score;bestEl.textContent=score;}if(mC>0)playMerge(mM);else playSlide();Array.from(tilesEl.children).forEach(function(el){var r=parseInt(el.dataset.r),c=parseInt(el.dataset.c);if(isNaN(r)||isNaN(c))return;var d=pm[r][c];if(d){var np=tilePos(d[0],d[1]);el.style.transition='left 0.12s ease,top 0.12s ease';el.style.left=np.left+'px';el.style.top=np.top+'px';}});await sleep(130);Array.from(tilesEl.children).forEach(function(el){recycle(el);});tilesEl.innerHTML='';for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(board[r][c])mkTile(r,c,board[r][c],false,ma[r][c]);if(addTile())playSpawn();var l=L();if(board.some(function(r){return r.some(function(v){return v>=DIFF[diff].goal;});})){playWin();overlayMsg.textContent=l.win;overlaySub.textContent=l.winS+DIFF[diff].goal+'!';overlay.style.display='flex';}else if(isLose()){playLose();overlayMsg.textContent=l.lose;overlaySub.textContent=l.loseS;overlay.style.display='flex';}}moving=false;}
+function isLose(){var n=sz();for(var r=0;r<n;r++)for(var c=0;c<n;c++){if(!board[r][c])return false;if(c<n-1&&board[r][c]===board[r][c+1])return false;if(r<n-1&&board[r][c]===board[r+1][c])return false;}return true;}
+document.getElementById('overlay-btn').onclick=init;
+document.addEventListener('keydown',function(e){var m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'};if(m[e.key]){e.preventDefault();move(m[e.key]);}});
+var tx=0,ty=0;
+gridWrap.addEventListener('touchstart',function(e){tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
+gridWrap.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)>Math.abs(dy)){if(Math.abs(dx)>20)move(dx>0?'right':'left');}else{if(Math.abs(dy)>20)move(dy>0?'down':'up');}},{passive:true});
+setTimeout(function(){applyLang();init();},50);
+</script>
+</body>
+</html>
